@@ -2,6 +2,8 @@ package com.example.demo.service;
 
 import com.example.demo.enums.OperatorEnum;
 import com.example.demo.pojo.*;
+import com.example.demo.pojo.Number;
+import com.example.demo.utils.MathUtil;
 import com.example.demo.utils.QuestionUtil;
 
 import java.util.LinkedList;
@@ -27,18 +29,42 @@ public class RepeatService {
                         return true;
                     }
                     //构建运算符优先链表
-                    List<Operator> o1 = buildLink(QuestionUtil.fatherListToSonList(origin.getCharList(), Operator.class), origin.getParenthesesList());
-                    List<Operator> o2 = buildLink(QuestionUtil.fatherListToSonList(question.getCharList(), Operator.class), question.getParenthesesList());
-                    //比较运算符链表是否相同
+                    List<Operator> o1 = QuestionUtil.buildLink(QuestionUtil.fatherListToSonList(origin.getCharList(), Operator.class), origin.getParenthesesList());
+                    List<Operator> o2 = QuestionUtil.buildLink(QuestionUtil.fatherListToSonList(question.getCharList(), Operator.class), question.getParenthesesList());
+                    //比较运算符优先链表是否相同
                     for (int i = 0; i < o1.size(); i++) {
                         if (!o1.get(i).getOperator().equals(o2.get(i).getOperator())) {
                             return false;
                         }
                     }
                     //根据优先链表逐一比较
-                    List<Char> charList1 = origin.getCharList();
-                    List<Char> charList2 = question.getCharList();
-
+                    List<Char> charList1 = new LinkedList<>();
+                    List<Char> charList2 = new LinkedList<>();
+                    charList1.addAll(origin.getCharList());
+                    charList2.addAll(question.getCharList());
+                    List<String> stringList1 = new LinkedList<>();
+                    List<String> stringList2 = new LinkedList<>();
+                    for (int i = 0; i < o1.size() - 1; i ++) {
+                        int index1 = charList1.indexOf(o1.get(i));
+                        int index2 = charList2.indexOf(o2.get(i));
+                        stringList1.add(((Number)charList1.get(index1 - 1)).getOutput());
+                        stringList1.add(((Number)charList1.get(index1 + 1)).getOutput());
+                        stringList2.add(((Number)charList2.get(index2 - 1)).getOutput());
+                        stringList2.add(((Number)charList2.get(index2 + 1)).getOutput());
+                        if (!QuestionUtil.isListEqual(stringList1, stringList2)) {
+                            return false;
+                        }
+                        stringList1.clear();
+                        stringList2.clear();
+                        Number n = MathUtil.calculate((Number)charList1.get(index1 - 1), o1.get(i), (Number)charList1.get(index1 + 1));
+                        for (int j = 0; j < 3; j++) {
+                            charList1.remove(index1 - 1);
+                            charList2.remove(index2 - 1);
+                        }
+                        charList1.add(index1 - 1, n);
+                        charList2.add(index2 - 1, n);
+                    }
+                    return true;
                 }
             }
         }
@@ -52,57 +78,5 @@ public class RepeatService {
         List<String> stringList1 = operatorList1.stream().map(e -> e.getOperator()).collect(Collectors.toList());
         List<String> stringList2 = operatorList2.stream().map(e -> e.getOperator()).collect(Collectors.toList());
         return QuestionUtil.isListEqual(stringList1, stringList2);
-    }
-
-    /**
-     * 构建运算符优先运算链表
-     * @param operatorList
-     * @param parenthesesList
-     * @return
-     */
-    public List<Operator> buildLink(List<Operator> operatorList, List<Parentheses> parenthesesList) {
-        if (operatorList.size() == 1) {
-            return operatorList;
-        }
-        List<Operator> originList = operatorList;
-        List<Operator> calculateList = new LinkedList<>();
-        //如果有括号，找到最优先的括号
-        Parentheses priorityParentheses;
-        if (parenthesesList.size() != 0) {
-            priorityParentheses = parenthesesList.get(0);
-            for (int i = 1; i < parenthesesList.size(); i++) {
-                Parentheses p = parenthesesList.get(i);
-                if (p.getEndNId() - p.getStartNId() < priorityParentheses.getEndNId() - priorityParentheses.getStartNId()) {
-                    priorityParentheses = p;
-                } else if (p.getEndNId() - p.getStartNId() == priorityParentheses.getEndNId() - priorityParentheses.getStartNId() && p.getStartNId() < priorityParentheses.getStartNId()) {
-                    priorityParentheses = p;
-                }
-            }
-            parenthesesList.remove(priorityParentheses);
-            int start = priorityParentheses.getStartNId();
-            int end = priorityParentheses.getEndNId() - 1;
-            operatorList = QuestionUtil.findCharById(operatorList, start, end);
-        }
-        List<Operator> tempOs = new LinkedList<>();
-        for (Operator o: operatorList) {
-            if (o.getOperator().equals(OperatorEnum.MULTIPLICATION.getOperator()) || o.getOperator().equals(OperatorEnum.DIVISION.getOperator())) {
-                ((LinkedList<Operator>) calculateList).addLast(o);
-            } else {
-                ((LinkedList<Operator>) tempOs).addLast(o);
-            }
-        }
-        for (Operator o: tempOs) {
-            ((LinkedList<Operator>) calculateList).addLast(o);
-        }
-        //删除已添加到链表的运算符
-        for (Operator o: calculateList) {
-            originList.remove(o);
-        }
-        if (originList.size() == 0) {
-            return calculateList;
-        } else {
-            calculateList.addAll(buildLink(originList, parenthesesList));
-            return calculateList;
-        }
     }
 }

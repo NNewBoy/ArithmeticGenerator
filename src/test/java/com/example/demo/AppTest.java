@@ -1,14 +1,14 @@
 package com.example.demo;
 
-import org.junit.Assert;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 public class AppTest {
 
     @Test
     public void main() {
+//        String[] args = {"-n", "10000", "-r", "10"};
+        String[] args = {"-e", "Exercises.txt", "-a", "Answers.txt"};
+        App.main(args);
     }
 
     @Test
